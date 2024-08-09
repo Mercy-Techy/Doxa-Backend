@@ -139,6 +139,14 @@ export const addDocumentValidator = async (
         if (!existingFile && required)
           return response(res, 422, `${capitalizer(name)} was not uploaded`);
         if (!existingFile && !required) continue;
+        if (dataType !== "document") {
+          if (existingFile.mimetype.split("/")[0] !== dataType)
+            return response(
+              res,
+              422,
+              `${capitalizer(name)} is of data type ${dataType}`
+            );
+        }
         documentFiles.push(existingFile);
       }
     }
