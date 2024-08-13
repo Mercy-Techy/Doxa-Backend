@@ -158,7 +158,7 @@ export const addDocumentValidator = async (
             );
           }
         }
-        documentFiles.push(existingFile);
+        documentFiles.push({ ...existingFile, dataType });
       }
     }
     req.body = { ...req.body, documentText, documentFiles };

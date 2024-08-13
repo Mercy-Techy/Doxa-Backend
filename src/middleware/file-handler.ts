@@ -39,15 +39,14 @@ export const uploadFile = async (
     const { documentFiles, ...otherItems } = req.body;
     const uploadedFiles = [];
     if (documentFiles.length > 0) {
-      for (let { path, fieldname } of documentFiles) {
+      for (let { path, fieldname, dataType } of documentFiles) {
         const { status, data } = await fileUploader(path);
         if (!status) continue;
         uploadedFiles.push({
           name: fieldname,
           publicId: data?.public_id,
           url: data?.url,
-          fileType:
-            data?.resource_type === "raw" ? "document" : data?.resource_type,
+          fileType: dataType,
         });
       }
       req.body = { ...otherItems, uploadedFiles };
