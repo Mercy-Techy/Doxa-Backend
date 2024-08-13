@@ -302,7 +302,7 @@ export const editDocumentValidator = async (
             (fl) => fl.name === existingFile.fieldname
           );
           fl ? await deleteFile(fl.publicId, fl.fileType) : "";
-          documentFiles.push(existingFile);
+          documentFiles.push({ ...existingFile, dataType });
         }
         if (otherItems[name]) {
           const fl = document.files.find((fl) => fl.name === name);
