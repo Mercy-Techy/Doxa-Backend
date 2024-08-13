@@ -146,6 +146,17 @@ export const addDocumentValidator = async (
               422,
               `${capitalizer(name)} is of data type ${dataType}`
             );
+        } else {
+          if (
+            existingFile.mimetype?.includes("image") ||
+            existingFile.mimetype?.includes("video")
+          ) {
+            return response(
+              res,
+              422,
+              `${capitalizer(name)} is of data type ${dataType}`
+            );
+          }
         }
         documentFiles.push(existingFile);
       }
