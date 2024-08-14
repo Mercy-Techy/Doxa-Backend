@@ -5,9 +5,9 @@ export const collectionValidator = [
     .trim()
     .notEmpty()
     .isString()
-    .isLength({ min: 3, max: 30 })
+    .isLength({ min: 3, max: 50 })
     .withMessage(
-      "The length of the collection name should fall between 3 and 15"
+      "The length of the collection name should fall between 3 and 50"
     )
     .toLowerCase(),
   body("database", "Databse Identifier is required").trim().isMongoId(),
@@ -17,7 +17,7 @@ export const collectionValidator = [
     .notEmpty()
     .isString()
     .isLength({ min: 3, max: 30 })
-    .withMessage("The length of the field name should fall between 3 and 15")
+    .withMessage("The length of the field name should fall between 3 and 30")
     .toLowerCase()
     .custom((value, { req }) => {
       const foundField = req.body.fields.filter(

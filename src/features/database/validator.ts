@@ -6,8 +6,8 @@ export const databaseValidator = [
     .trim()
     .notEmpty()
     .isString()
-    .isLength({ min: 3, max: 30 })
-    .withMessage("The length of the database name should fall between 3 and 15")
+    .isLength({ min: 3, max: 50 })
+    .withMessage("The length of the database name should fall between 3 and 50")
     .toLowerCase(),
 ];
 
