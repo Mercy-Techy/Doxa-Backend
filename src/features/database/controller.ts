@@ -41,10 +41,12 @@ export const fetchDatabases = async (
 ) => {
   try {
     const databasesArray = [];
-    const createdDatabases = await Database.find({ creator: req.user?._id });
+    const createdDatabases = await Database.find({
+      creator: req.user?._id,
+    }).populate({ path: "users.user", select: "firstname lastname" });
     const addedDatabases = await Database.find({
       "users.user": req.user?._id,
-    });
+    }).populate({ path: "users.user", select: "firstname lastname" });
     const databases = [...createdDatabases, ...addedDatabases];
     for (let database of databases) {
       const collections = await Collection.count({ database: database._id });
