@@ -44,7 +44,10 @@ export const editUser = async (
         message: "User has not been added to your database",
         data: null,
       };
-    database.users[dbUserIndex] = { user: dbUser.user, privilege };
+    database.users[dbUserIndex] = {
+      privilege,
+      user: dbUser.user,
+    };
     await database.save();
     return {
       status: true,
