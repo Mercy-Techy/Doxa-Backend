@@ -25,7 +25,7 @@ const userSchema: Schema = new Schema({
   firstname: { type: String, required: true, trim: true },
   lastname: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, trim: true },
-  password: { type: String, required: true, trim: true },
+  password: { type: String, required: true, trim: true, select: false },
   phone: { type: String, required: true, trim: true },
   emailVerified: { type: Boolean, required: true, default: false },
   avatar: {

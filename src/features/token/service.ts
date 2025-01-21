@@ -51,7 +51,7 @@ export const verifyToken = async (
 ): Promise<serviceReturnType> => {
   try {
     const date: number = new Date().getTime();
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) return { status: false, message: "Invalid Token", data: null };
     const foundToken = await Token.findOne({
       user: user._id,

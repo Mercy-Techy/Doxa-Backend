@@ -11,6 +11,7 @@ import { verifyDatabaseName } from "./service";
 import { Collection } from "../collection/model";
 import Token from "../token/model";
 import { Document } from "../document/model";
+import { Types } from "mongoose";
 
 export const addDatabase = async (
   req: Req,
@@ -40,24 +41,51 @@ export const fetchDatabases = async (
   next: NextFunction
 ) => {
   try {
-    const databasesArray = [];
-    const createdDatabases = await Database.find({
-      creator: req.user?._id,
-    }).populate({ path: "users.user", select: "firstname lastname" });
-    const addedDatabases = await Database.find({
-      "users.user": req.user?._id,
-    }).populate({ path: "users.user", select: "firstname lastname" });
-    const databases = [...createdDatabases, ...addedDatabases];
-    for (let database of databases) {
-      const collections = await Collection.count({ database: database._id });
-      const documents = await Document.count({ database: database._id });
-      databasesArray.push({
-        ...database.toObject(),
-        collections,
-        documents,
-      });
-    }
-    return response(res, 200, "Databases", databasesArray);
+    const page = +(req.query.page || 1);
+    const limit = +(req.query.limit || 10);
+    const skip = (page - 1) * limit;
+    const result = await Database.aggregate([
+      {
+        $match: {
+          $or: [{ creator: req.user?._id }, { "users.user": req.user?._id }],
+        },
+      },
+      {
+        $lookup: {
+          from: "collections",
+          localField: "_id",
+          foreignField: "database",
+          as: "collections",
+        },
+      },
+      {
+        $lookup: {
+          from: "documents",
+          localField: "_id",
+          foreignField: "database",
+          as: "documents",
+        },
+      },
+      {
+        $addFields: {
+          collections: { $size: "$collections" },
+          documents: { $size: "$documents" },
+        },
+      },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "totalItems" }],
+        },
+      },
+    ]);
+    const { data, totalCount } = result[0] || {
+      data: [],
+      totalCount: [{ totalItems: 0 }],
+    };
+    const totalItems = totalCount[0].totalItems;
+    const totalPages = Math.ceil(totalItems / limit);
+    return response(res, 200, "Databases", { data, totalItems, totalPages });
   } catch (error) {
     next(error);
   }
@@ -69,7 +97,6 @@ export const getDatabase = async (
   next: NextFunction
 ) => {
   try {
-    const collectionsArray = [];
     const { _id } = req.params;
     const verifyAccess = await databaseAccess(
       String(_id),
@@ -78,17 +105,35 @@ export const getDatabase = async (
     );
     if (!verifyAccess.status)
       return response(res, 401, verifyAccess.message, null);
-    const collections = await Collection.find({
-      database: _id,
-    });
-    for (let collection of collections) {
-      const documents = await Document.count({
-        database: _id,
-        collectionId: collection._id,
-      });
-      collectionsArray.push({ ...collection.toObject(), documents });
-    }
-    return response(res, 200, "Database", collectionsArray);
+    const page = +(req.query.page || 1);
+    const limit = +(req.query.limit || 10);
+    const skip = (page - 1) * limit;
+    const collections = await Collection.aggregate([
+      { $match: { database: new Types.ObjectId(_id) } },
+      {
+        $lookup: {
+          from: "documents",
+          localField: "_id",
+          foreignField: "collectionId",
+          as: "documents",
+        },
+      },
+      {
+        $addFields: {
+          documents: { $size: "$documents" },
+        },
+      },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "totalItems" }],
+        },
+      },
+    ]);
+    const { data, totalCount } = collections[0];
+    const totalItems = totalCount[0]?.totalItems || 0;
+    const totalPages = Math.ceil(totalItems / limit);
+    return response(res, 200, "Database", { data, totalItems, totalPages });
   } catch (error) {
     next(error);
   }
@@ -108,7 +153,6 @@ export const editDatabase = async (
     );
     if (!verificationResult.status)
       return response(res, 400, verificationResult.message);
-
     const database = await Database.findByIdAndUpdate(
       { _id },
       { name },

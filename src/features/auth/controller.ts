@@ -112,7 +112,7 @@ export const changePassword = async (
 ) => {
   try {
     const { oldPassword, password } = req.body;
-    const user = await User.findById(req?.user?._id);
+    const user = await User.findById(req?.user?._id).select("+password");
     if (!user) return response(res, 404, "User does not exisit");
     const isPassword = bcrypt.compareSync(oldPassword, user.password);
     if (!isPassword) return response(res, 401, "Invalid Password");
@@ -131,7 +131,7 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) return response(res, 401, "Invalid email address", null);
     const passwordMatches = bcrypt.compareSync(password, user.password);
     if (!passwordMatches) return response(res, 401, "Invalid Password");
@@ -149,7 +149,8 @@ export const login = async (
       );
     const token = signJWT({ _id: user._id });
     await User.findByIdAndUpdate(user._id, { status: "active" });
-    return response(res, 200, "Welcome to Doxa", { token, user });
+    const { password: ps, ...details } = user.toObject();
+    return response(res, 200, "Welcome to Doxa", { token, user: details });
   } catch (error) {
     next(error);
   }

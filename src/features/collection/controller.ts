@@ -5,10 +5,11 @@ import response from "../../utilities/response";
 import { Collection } from "./model";
 import { verifyCollectionName } from "./service";
 import { databaseAccess } from "../database/service";
-import { Database } from "../database/model";
 import { fieldType } from "../../types";
 import { Document } from "../document/model";
 import { removeDocument } from "../document/service";
+import Paginator from "../../utilities/paginator";
+import { Types } from "mongoose";
 
 export const createCollection = async (
   req: Req,
@@ -25,6 +26,7 @@ export const createCollection = async (
     const collection = await Collection.create({
       ...req.body,
       creator: req.user?._id,
+      database: new Types.ObjectId(req.body.database),
     });
     return response(res, 201, "Collection created", collection);
   } catch (error) {
@@ -48,11 +50,15 @@ export const fetchCollection = async (
     if (!verifyAccess.status)
       return response(res, 401, verifyAccess.message, null);
 
-    const collection = await Collection.findOne({ _id, database });
+    const collection = await Collection.findOne({
+      _id: new Types.ObjectId(_id),
+      database: new Types.ObjectId(database),
+    });
     if (!collection) return response(res, 404, "Collection does not exist");
 
-    const documents = await Document.find({ collectionId: collection._id });
-
+    const documents = await Paginator(Document, 1, 10, null, {
+      collectionId: collection._id,
+    });
     return response(res, 200, "Collection", documents);
   } catch (error) {
     next(error);
@@ -75,7 +81,10 @@ export const fetchCollectionDetails = async (
     if (!verifyAccess.status)
       return response(res, 401, verifyAccess.message, null);
 
-    const collection = await Collection.findOne({ _id, database });
+    const collection = await Collection.findOne({
+      _id: new Types.ObjectId(_id),
+      database: new Types.ObjectId(database),
+    });
     if (!collection) return response(res, 404, "Collection does not exist");
 
     return response(res, 200, "Collection", collection);
@@ -104,7 +113,7 @@ export const editCollection = async (
     );
 
     const collection = await Collection.findOneAndUpdate(
-      { _id, database },
+      { _id: new Types.ObjectId(_id), database: new Types.ObjectId(database) },
       { name, fields: newFields },
       { new: true }
     );
@@ -133,13 +142,11 @@ export const deleteCollection = async (
       return response(res, 401, verifyAccess.message, null);
 
     const documents = await Document.find({
-      collectionId: collection._id,
-      database: collection.database,
+      collectionId: new Types.ObjectId(collection._id),
+      database: new Types.ObjectId(collection.database),
     });
     for (let document of documents) {
-      const removalResult = await removeDocument(document);
-      if (!removalResult.status)
-        return response(res, 400, removalResult.message);
+      removeDocument(document);
     }
     await Collection.findByIdAndDelete(collection._id);
     response(res, 200, "Collection deleted");

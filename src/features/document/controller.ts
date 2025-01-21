@@ -2,11 +2,11 @@ import { Response, NextFunction } from "express";
 
 import { Req } from "../../types";
 import response from "../../utilities/response";
-import { Document, fileData, textData } from "./model";
-import { deleteFile } from "../../middleware/file-handler";
+import { Document } from "./model";
 import { databaseAccess } from "../database/service";
 import { removeDocument } from "./service";
-import { Collection, collectionField } from "../collection/model";
+import { Collection } from "../collection/model";
+import { Types } from "mongoose";
 
 export const createDocument = async (
   req: Req,
@@ -22,6 +22,8 @@ export const createDocument = async (
       text: documentText || [],
       files: uploadedFiles || [],
       creator: req.user?._id,
+      collectionId: new Types.ObjectId(otherItems.collectionId),
+      database: new Types.ObjectId(otherItems.database),
     });
     return response(res, 201, "Document successfully created", document);
   } catch (error) {
