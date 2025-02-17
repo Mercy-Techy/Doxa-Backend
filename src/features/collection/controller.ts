@@ -59,6 +59,20 @@ export const fetchCollection = async (
     const documents = await Paginator(Document, 1, 10, null, {
       collectionId: collection._id,
     });
+    const documentsData = [];
+    for (let doc of documents.data) {
+      const docText = [];
+      for (let tx of doc?.text) {
+        if (tx.dataType === "link to another document") {
+          const linkedDocument = await Document.findById(tx.value);
+          tx = { ...tx?.toObject(), linkedDocument };
+        }
+        docText.push(tx);
+      }
+      documentsData.push({ ...doc.toObject(), text: docText });
+    }
+    documents.data = documentsData;
+    console.log(documentsData[0].text);
     return response(res, 200, "Collection", documents);
   } catch (error) {
     next(error);

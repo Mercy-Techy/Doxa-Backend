@@ -63,13 +63,13 @@ export const addDocumentValidator = async (
       dataType,
       data,
     } of existingCollection.fields) {
-      let dataStore = {};
       if (textTypes.includes(dataType)) {
         const existingField = otherItems[name];
         if (!existingField && required)
           return response(res, 422, `${capitalizer(name)} has no value`);
         if (!existingField && !required) continue;
 
+        //ensuring that the value sent has the correct data type specified during the creation of the collection
         const isVerified = dataTypeValidator(dataType, existingField);
         if (!isVerified)
           return response(
@@ -79,6 +79,7 @@ export const addDocumentValidator = async (
           );
 
         if (unique) {
+          // searching if a document in that collection has the same value for this key since it should be unique
           const existingDocument = await Document.findOne({
             database,
             collectionId,
@@ -109,12 +110,14 @@ export const addDocumentValidator = async (
         }
 
         if (dataType === "link to another document") {
+          // ensuring that the linked document is not in the same collection
           if (String(existingCollection._id) === String(data.collectionId))
             return response(
               res,
               400,
               "Linked document cannot be in the same collection"
             );
+          // confirming if linked document id sent from the frontend is valid and is in the same database
           const linkedDocument = await Document.findOne({
             _id: existingField,
             collectionId: data.collectionId,
@@ -122,14 +125,11 @@ export const addDocumentValidator = async (
           });
           if (!linkedDocument)
             return response(res, 404, "Linked document does not exist");
-          dataStore = { ...dataStore, linkedDocument };
         }
-
         documentText.push({
           name,
           value: existingField,
           dataType,
-          data: dataStore,
         });
       }
       if (fileTypes.includes(dataType)) {
@@ -140,6 +140,7 @@ export const addDocumentValidator = async (
           return response(res, 422, `${capitalizer(name)} was not uploaded`);
         if (!existingFile && !required) continue;
         if (dataType !== "document") {
+          //confirming if the file type is correct
           if (existingFile.mimetype.split("/")[0] !== dataType)
             return response(
               res,
@@ -216,7 +217,6 @@ export const editDocumentValidator = async (
       dataType,
       data,
     } of existingCollection.fields) {
-      let dataStore = {};
       if (textTypes.includes(dataType)) {
         const existingField = otherItems[name];
         if (!existingField && required)
@@ -278,14 +278,12 @@ export const editDocumentValidator = async (
           });
           if (!linkedDocument)
             return response(res, 404, "Linked document does not exist");
-          dataStore = { ...dataStore, linkedDocument };
         }
 
         documentText.push({
           name,
           value: existingField,
           dataType,
-          data: dataStore,
         });
       }
       if (fileTypes.includes(dataType)) {
@@ -316,6 +314,7 @@ export const editDocumentValidator = async (
       savedFiles: [...savedFiles, ...req.body.rFiles],
       documentFiles,
     };
+    console.log(documentText);
     next();
   } catch (error) {
     next(error);
