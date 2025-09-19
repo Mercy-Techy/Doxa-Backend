@@ -19,11 +19,11 @@ export const signup = async (
     if (!creationResult.status) throw creationResult.data;
     const tokenResult = await createToken(creationResult.data, "verifyEmail");
     if (!tokenResult.status) return response(res, 400, tokenResult.message);
-    await mailer(
-      creationResult.data.email,
-      "Account Verification",
-      `You registered on Doxa, Kindly use the token ${tokenResult.data} on your mobile app to verify your account creation`
-    );
+    await mailer(creationResult.data.email, "Account Verification", {
+      heading: "Account Verification",
+      name: creationResult.data.firstname,
+      content: `We received a request to verify your email. Kindly use the token below to verify your email:<br/><br/>${tokenResult.data}<br/><br/>If you did not request an email verification, please ignore this mail.<br/>This token is valid for the next 30 minutes. After this period, you will need to request for another token.`,
+    });
     return response(
       res,
       201,
@@ -69,11 +69,11 @@ export const requestResendPassword = async (
       return response(res, 404, "You have no account with us, kindly sign up");
     const tokenResult = await createToken(user, type);
     if (!tokenResult.status) return response(res, 400, tokenResult.message);
-    await mailer(
-      email,
-      subject,
-      `You requested for a password reset, kindly use the token ${tokenResult.data} to ${text}`
-    );
+    await mailer(email, subject, {
+      content: `You requested for a password reset, kindly use the token ${tokenResult.data} to ${text}`,
+      heading: subject,
+      name: user.firstname,
+    });
     return response(
       res,
       200,

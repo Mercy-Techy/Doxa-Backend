@@ -44,6 +44,7 @@ export const fetchDatabases = async (
     const page = +(req.query.page || 1);
     const limit = +(req.query.limit || 10);
     const skip = (page - 1) * limit;
+
     const result = await Database.aggregate([
       {
         $match: {
@@ -72,6 +73,50 @@ export const fetchDatabases = async (
           documents: { $size: "$documents" },
         },
       },
+      // Lookup for users and include only firstname and lastname
+      {
+        $unwind: {
+          path: "$users",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // the users collection name
+          localField: "users.user",
+          foreignField: "_id",
+          as: "users.userInfo",
+        },
+      },
+      {
+        $unwind: {
+          path: "$users.userInfo",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          "users.user": {
+            _id: "$users.userInfo._id",
+            firstname: "$users.userInfo.firstname",
+            lastname: "$users.userInfo.lastname",
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          name: { $first: "$name" },
+          creator: { $first: "$creator" },
+          locked: { $first: "$locked" },
+          lockedByAdmin: { $first: "$lockedByAdmin" },
+          createdAt: { $first: "$createdAt" },
+          updatedAt: { $first: "$updatedAt" },
+          collections: { $first: "$collections" },
+          documents: { $first: "$documents" },
+          users: { $push: "$users" },
+        },
+      },
       {
         $facet: {
           data: [{ $skip: skip }, { $limit: limit }],
@@ -79,12 +124,15 @@ export const fetchDatabases = async (
         },
       },
     ]);
+
     const { data, totalCount } = result[0] || {
       data: [],
       totalCount: [{ totalItems: 0 }],
     };
-    const totalItems = totalCount[0].totalItems;
+
+    const totalItems = totalCount[0]?.totalItems || 0;
     const totalPages = Math.ceil(totalItems / limit);
+
     return response(res, 200, "Databases", { data, totalItems, totalPages });
   } catch (error) {
     next(error);
@@ -177,11 +225,11 @@ export const addUser = async (req: Req, res: Response, next: NextFunction) => {
       privilege,
     });
     if (!tokenResult.status) return response(res, 400, tokenResult.message);
-    await mailer(
-      user.email,
-      "Database Invite",
-      mailString(String(req.user?.firstname), tokenResult.data)
-    );
+    await mailer(user.email, "Database Invite", {
+      heading: "Database Invite",
+      content: mailString(String(req.user?.firstname), tokenResult.data),
+      name: user.firstname,
+    });
     return response(
       res,
       200,

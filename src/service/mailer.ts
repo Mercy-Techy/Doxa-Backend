@@ -1,35 +1,88 @@
-import nodemailer from "nodemailer";
-import sendgrid from "nodemailer-sendgrid";
+import { createTransport } from "nodemailer";
 
-const transporter = nodemailer.createTransport(
-  sendgrid({
-    apiKey: String(process.env.SENDGRID_API),
-  })
-);
+let transporter = createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL,
+    pass: process.env.MAIL_PASSKEY,
+  },
+});
 
-export default async (to: string, subject: string, data: string) => {
+export default async (
+  to: string,
+  subject: string,
+  body: { heading: string; name: string; content: any }
+) => {
   try {
     await transporter.sendMail({
       to: to,
-      from: process.env.MAIL_SENDER,
-      subject: subject,
-      html: `
+      from: process.env.GMAIL,
+      subject,
+      html: `<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="background-color: #f8f9fa; padding: 5%;">
-    <div style="background-color: #ffffff; padding: 5%; height: 75%;">
-        <div style="display: flex;">
-            <img src="https://res.cloudinary.com/dcozag1og/image/upload/v1707777308/Group_52_p5qtui.png" alt="logo" style="max-height: 100%; margin-right: 10px;">
-            <h1 style="color: #bbe809; font-weight: normal;">Doxa</h1>
-        </div>
-        <h2 style="font-weight: lighter;">${data}</h2>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Template</title>
+    <style>
+      body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        line-height: 1.6;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+      .header {
+        background-color: #000;
+        padding: 20px;
+        text-align: center;
+      }
+      .header img {
+        max-width: 120px;
+      }
+      .heading {
+        font-size: 28px;
+        color: #000;
+        text-align: center;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .content {
+        padding: 20px;
+        font-size: 16px;
+        color: #555;
+        line-height: 1.8;
+      }
+      .content p {
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <img src="https://res.cloudinary.com/dcozag1og/image/upload/v1707777308/Group_52_p5qtui.png" alt="logo" style="max-height: 100%; margin-right: 10px;">
+      </div>
+
+      <div class="heading">${body.heading}</div>
+
+      <div class="content">
+        <p>Hi ${body.name},</p>
+        <p>${body.content}</p>
+      </div>
     </div>
-</body>
+  </body>
 </html>
-      `,
+`,
     });
   } catch (error) {
     console.log(error);
